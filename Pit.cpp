@@ -1,20 +1,28 @@
 #include "ncurses.h"
 #include "Car.cpp"
+#include<iostream>
+#include<vector>
 
 class Pit
 {
 private:
     Car* cars[20];
+    bool occupied;
 
 public:
     Pit(){
         for(int i = 0; i < 20; i++){
             cars[i] = new Car(i);
         }
+        this->occupied = false;
+
     }
 
     void init()
     {
+        WINDOW * pitWindow;
+        WINDOW * info;
+
         initscr();
         noecho(); // no echo while we getch
         if (has_colors())
@@ -24,9 +32,11 @@ public:
             init_pair(2, COLOR_RED, COLOR_RED);
             init_pair(3, COLOR_GREEN, COLOR_GREEN);
         }
-        printPit();
+        printPit(pitWindow, info);
         getch();
-        end();
+
+
+        end(); //temp
     }
 
     void race()
@@ -38,18 +48,24 @@ public:
         endwin();
     }
 
-    void printPit()
+    void printPit(WINDOW* pit, WINDOW* info)
     {
-        WINDOW *localWin[10];
         int row, col;
         getmaxyx(stdscr, row, col);
+        
+        // Okno obsługujące wyświetlanie pit-stopów
+        pit = newwin(row-1, (col/2)+10, 0, 1);
+        refresh();
+        box(pit,0,0);
+        mvwprintw(pit, 1, ((col/2)+1)/2, "Pit-Stop");
+        wrefresh(pit);
 
-        for (int i = 0; i < 10; i++)
-        {
-            localWin[i] = newwin(5, 3, 3, 2 * i);
-            box(localWin[i], 0, 0);
-            wrefresh(localWin[i]);
-        }
+        // Okno informacyjne
+        info = newwin(row-1, (col/2)-10, 0, col/2 + 11);
+        box(info, 0, 0);
+        mvwprintw(info, 1, ((col/2) - 8)/2, "Info");
+        wrefresh(info);
+        getch();
     }
 };
 
