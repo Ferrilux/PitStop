@@ -1,7 +1,7 @@
 all: Pit
 
-Pit: Pit.cpp
-	g++ Pit.cpp -o Pit -lncurses
+Pit: *.cpp
+	g++ *.cpp -o Pit -lncurses
 
 rm:
 	rm Pit
