@@ -85,11 +85,7 @@ public:
 
         for(int i = 0; i < 20; i++){
             mvwprintw(info, (i + 2) + 5, col/15, "Car %d - ", i+1);
-            wrefresh(info);
-
-            // TODO
-            // const char* status = cars[i]->getStatus();
-            // mvwprintw(info, (i + 2) + 5, col/15 + 10, "%s", status);
+            mvwprintw(info, (i + 2) + 5, col/15 + 10, cars[i]->getStatus());
         }
         wrefresh(info);
 
@@ -131,7 +127,7 @@ public:
 
 int main(void)
 {
-    Pit *pitStop;
+    Pit *pitStop = new Pit();
     pitStop->init();
 
     return 0;
