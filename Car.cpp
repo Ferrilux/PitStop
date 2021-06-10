@@ -1,5 +1,6 @@
 #include "Wheel.cpp"
-
+#include <string>
+    
     enum status
     {
         inPit,
@@ -18,5 +19,19 @@ public:
     Car(int id){
         this->id = id;
         this->currentStatus = onTrack;
+    }
+
+    const char* getStatus(){
+
+        switch(this->currentStatus){
+            case inPit:
+                return "In Pit";
+            case onTrack:
+                return "On track";
+            case waiting:
+                return "Waiting in Pit";
+            default:
+                return "Undefined";
+        }
     }
 };

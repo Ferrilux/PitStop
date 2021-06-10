@@ -4,4 +4,7 @@ class Wheel
 {
 private:
     std::mutex tire;
+
+public:
+
 };
