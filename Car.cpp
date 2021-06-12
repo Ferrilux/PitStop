@@ -2,7 +2,7 @@
 #include <string>
 #include <mutex>
 #include <thread>
-    
+
     enum status
     {
         inPit,

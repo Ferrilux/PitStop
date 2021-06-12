@@ -50,15 +50,14 @@ public:
     void startRace()
     {
         std::thread observe(&Pit::checkInput, this);
-        // TODO - figure out how to pass function correctly
         for (auto* car : cars){
-            car->thread(&Pit::race);
+            car->thread = std::thread(&Pit::race, this);
             car->setStatus(1);
         }
         observe.join();
     }
 
-    void race()
+    void race ()
     {
         while(!this->isOver){
             drive();
@@ -67,7 +66,7 @@ public:
                 changeTires();
             }
         }
-    }
+    };
 
     void drive(){
         auto timeDriving = randomTime(10);
