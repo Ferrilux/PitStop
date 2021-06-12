@@ -1,23 +1,22 @@
 #include "ncursesw/ncurses.h"
 #include "Car.cpp"
 #include "locale.h"
-#include<iostream>
-#include<vector>
-#include<mutex>
-#include<thread>
-#include<random>
-#include<atomic>
+#include <iostream>
+#include <vector>
+#include <mutex>
+#include <thread>
+#include <random>
+#include <atomic>
 
 class Pit
 {
 private:
-    // Car* cars[20];
     std::vector<Car*> cars;
     std::atomic<bool> isOver;
     std::atomic<bool> crash;
-    bool occupied;
-    // WINDOW *pitWindow;
-    // WINDOW *infoWindow;
+    int row, col;
+    WINDOW *pitWindow;
+    WINDOW *infoWindow;
 
 public:
     Pit(){
@@ -25,14 +24,10 @@ public:
             Car* newCar = new Car(i);
             cars.push_back(newCar);
         }
-        this->occupied = false;
     }
 
     void init()
     {
-        WINDOW *pitWindow;
-        WINDOW *infoWindow;
-        int row, col;
 
         initscr();
         noecho(); // no echo while we getch
@@ -47,15 +42,39 @@ public:
         getmaxyx(stdscr, row, col);
         pitWindow = printPit(pitWindow, row, col);
         infoWindow = printInfo(infoWindow, row, col);
-        getch();
 
-        race(pitWindow, infoWindow);
+        startRace();
         end(); //temp
     }
 
-    void race(WINDOW* pitWindow, WINDOW* infoWindow)
+    void startRace()
     {
-        //std::thread observe(&Pit::checkQuit, this);
+        std::thread observe(&Pit::checkInput, this);
+        // TODO - figure out how to pass function correctly
+        for (auto* car : cars){
+            car->thread(&Pit::race);
+            car->setStatus(1);
+        }
+        observe.join();
+    }
+
+    void race()
+    {
+        while(!this->isOver){
+            drive();
+            changeTires();
+            if(this->crash){
+                changeTires();
+            }
+        }
+    }
+
+    void drive(){
+        auto timeDriving = randomTime(10);
+        sleepFor(timeDriving);
+    }
+
+    void changeTires(){
 
     }
 
@@ -123,10 +142,9 @@ public:
             sign = getchar();
             if (sign == 'q') {
                 this->isOver = true;
-                // TODO - end all threads
-                // for (auto& t : threads) {
-                //     t.join();
-                // }
+                for(auto& car : cars){
+                    car->thread.join();
+                }
             }
             if(sign == 'c'){
                 this->crash = true;

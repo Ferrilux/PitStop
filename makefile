@@ -1,7 +1,7 @@
 all: Pit
 
 Pit: *.cpp
-	g++ *.cpp -o Pit -lncursesw -g 
+	g++ -std=c++14 *.cpp -o Pit -lncursesw -g -pthread
 
 rm:
 	rm Pit
