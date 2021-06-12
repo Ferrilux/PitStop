@@ -1,5 +1,6 @@
-#include "ncurses.h"
+#include "ncursesw/ncurses.h"
 #include "Car.cpp"
+#include "locale.h"
 #include<iostream>
 #include<vector>
 #include<mutex>
@@ -35,6 +36,7 @@ public:
 
         initscr();
         noecho(); // no echo while we getch
+        setlocale(LC_ALL, ""); // enable utf-8 print
         if (has_colors())
         {
             start_color();
@@ -64,12 +66,35 @@ public:
     
     // Okno obsługujące wyświetlanie pit-stopów
     WINDOW* printPit(WINDOW* pit, int row, int col)
-    {       
-
+    {      
+        const char* car = "";
         pit = newwin(row-1, (col/2)+10, 0, 1);
         refresh();
         box(pit,0,0);
-        mvwprintw(pit, 1, ((col/2)+1)/2, "Pit-Stop");
+        mvwprintw(pit, 1, col/4, "Pit-Stop");
+        
+        for(int i = 0; i < 5; i++){
+            mvwprintw(pit, i*9 + 3, col/8, "Team #%d", i + 1);
+            mvwprintw(pit, i*9 + 4, col/8 - 1, "O        O");
+            mvwprintw(pit, i*9 + 5, col/8 - 1, " /------\\ ");
+            mvwprintw(pit, i*9 + 6, col/8 - 1, " |      |");
+            mvwprintw(pit, i*9 + 7, col/8 - 1, " | Free |");
+            mvwprintw(pit, i*9 + 8, col/8 - 1, " |      |");
+            mvwprintw(pit, i*9 + 9, col/8 - 1, " \\------/");
+            mvwprintw(pit, i*9 + 10, col/8 - 1, "O        O");
+        }
+
+        for(int i = 0; i < 5; i++){
+            mvwprintw(pit, i*9 + 3, 2 * col/6, "Team #%d", i + 6);
+            mvwprintw(pit, i*9 + 4, 2 * col/6 - 1, "O        O");
+            mvwprintw(pit, i*9 + 5, 2 * col/6 - 1, " /------\\ ");
+            mvwprintw(pit, i*9 + 6, 2 * col/6 - 1, " |      |");
+            mvwprintw(pit, i*9 + 7, 2 * col/6 - 1, " | Free |");
+            mvwprintw(pit, i*9 + 8, 2 * col/6 - 1, " |      |");
+            mvwprintw(pit, i*9 + 9, 2 * col/6 - 1, " \\------/");
+            mvwprintw(pit, i*9 + 10, 2 * col/6 - 1, "O        O");
+        }
+
         wrefresh(pit);
 
         return pit;
