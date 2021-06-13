@@ -32,13 +32,6 @@ public:
         initscr();
         noecho(); // no echo while we getch
         setlocale(LC_ALL, ""); // enable utf-8 print
-        if (has_colors())
-        {
-            start_color();
-            init_pair(1, COLOR_WHITE, COLOR_BLACK);
-            init_pair(2, COLOR_RED, COLOR_RED);
-            init_pair(3, COLOR_GREEN, COLOR_GREEN);
-        }
         getmaxyx(stdscr, row, col);
         pitWindow = printPit(pitWindow, row, col);
         infoWindow = printInfo(infoWindow, row, col);
@@ -50,20 +43,23 @@ public:
     void startRace()
     {
         std::thread observe(&Pit::checkInput, this);
-        for (auto* car : cars){
-            car->thread = std::thread(&Pit::race, this);
-            car->setStatus(1);
+        for (int i = 0; i < 20; i++){
+            cars[i]->thread = std::thread(&Pit::race, this, i);
         }
         observe.join();
     }
 
-    void race ()
+    void race (int id)
     {
         while(!this->isOver){
+            cars[id]->setStatus(1);
+            updateInfo(id);
             drive();
-            changeTires();
+            cars[id]->setStatus(3);
+            updateInfo(id);
+            changeTires(id);
             if(this->crash){
-                changeTires();
+                changeTires(id);
             }
         }
     };
@@ -73,8 +69,25 @@ public:
         sleepFor(timeDriving);
     }
 
-    void changeTires(){
+    void changeTires(int carID){
 
+        //std::unique_lock<std::mutex> lockFrontLeft(cars[carID]->wheels[0], std::defer_lock);
+        updatePit(carID, 0, 2);
+        //std::unique_lock<std::mutex> lockFrontRight(cars[carID]->wheels[1], std::defer_lock);
+        updatePit(carID, 1, 2);
+        //std::unique_lock<std::mutex> lockRearLeft(cars[carID]->wheels[2], std::defer_lock);
+        updatePit(carID, 2, 2);
+        //std::unique_lock<std::mutex> lockRearRight(cars[carID]->wheels[3], std::defer_lock);
+        updatePit(carID, 3, 2);
+        //std::lock(lockFrontLeft, lockFrontRight);
+        //, lockRearLeft, lockRearRight
+        auto changeTime = randomTime(5);
+        
+        cars[carID]->setStatus(0);
+        updateInfo(carID);
+
+        sleepFor(changeTime);
+        freePit(carID);
     }
 
     void end()
@@ -85,7 +98,6 @@ public:
     // Okno obsługujące wyświetlanie pit-stopów
     WINDOW* printPit(WINDOW* pit, int row, int col)
     {      
-        const char* car = "";
         pit = newwin(row-1, (col/2)+10, 0, 1);
         refresh();
         box(pit,0,0);
@@ -133,6 +145,90 @@ public:
         wrefresh(info);
 
         return info;
+    }
+
+    void updatePit(int carID, int tire, int color){
+        getmaxyx(stdscr, row, col);
+        
+        if (has_colors())
+        {
+            start_color();
+            switch(color){
+                case 1:
+                    init_pair(1, COLOR_WHITE, COLOR_BLACK);
+                    wattron(this->pitWindow, COLOR_PAIR(1));
+                case 2:
+                    init_pair(2, COLOR_RED, COLOR_RED);
+                    wattron(this->pitWindow,COLOR_PAIR(2));
+                case 3:
+                    init_pair(3, COLOR_GREEN, COLOR_GREEN);
+                    wattron(this->pitWindow, COLOR_PAIR(3));
+            }
+        }
+
+        if(carID < 10){
+            switch(tire){
+                case 0:
+                    mvwprintw(this->pitWindow, (carID%5)*9 + 4, col/8 - 1, "O");
+                case 1:
+                    mvwprintw(this->pitWindow, (carID%5)*9 + 4, col/8 + 8, "O");
+                case 2:
+                    mvwprintw(this->pitWindow, (carID%5)*9 + 10, col/8 - 1, "O");
+                case 3:
+                    mvwprintw(this->pitWindow, (carID%5)*9 + 10, col/8 + 8, "O");
+            }
+            wrefresh(this->pitWindow);
+            switch(color){
+                case 1:
+                    wattroff(this->pitWindow, COLOR_PAIR(1));
+                case 2:
+                    wattroff(this->pitWindow, COLOR_PAIR(2));
+                case 3:
+                    wattroff(this->pitWindow, COLOR_PAIR(3));
+            }
+            mvwprintw(this->pitWindow, (carID%5)*9 + 7, col/8 - 1, " | Car %d|", carID + 1);
+        }
+        else{
+            switch(tire){
+                case 0:
+                    mvwprintw(this->pitWindow, (carID%5)*9 + 4, 2 * col/6 - 1, "O");
+                case 1:
+                    mvwprintw(this->pitWindow, (carID%5)*9 + 4, 2 * col/6 + 8, "O");
+                case 2:
+                    mvwprintw(this->pitWindow, (carID%5)*9 + 10, 2 * col/6 - 1, "O");
+                case 3:
+                    mvwprintw(this->pitWindow, (carID%5)*9 + 10, 2 * col/6 + 8, "O");
+            }
+            wrefresh(this->pitWindow);
+            switch(color){
+                case 1:
+                    wattroff(this->pitWindow, COLOR_PAIR(1));
+                case 2:
+                    wattroff(this->pitWindow, COLOR_PAIR(2));
+                case 3:
+                    wattroff(this->pitWindow, COLOR_PAIR(3));
+            }
+            mvwprintw(this->pitWindow, (carID%5)*9 + 7, 2 * col/6 - 1, " | Car %d|", carID + 1);
+        }
+        wrefresh(this->pitWindow);
+    }
+
+    void freePit(int carID){
+        if(carID < 10){
+            mvwprintw(this->pitWindow, (carID%5)*9 + 7, col/8 - 1, " | Free |");
+        }
+        else{
+            mvwprintw(this->pitWindow, (carID%5)*9 + 7, 2 * col/6 - 1, " | Free |");
+        }
+        wrefresh(this->pitWindow);
+        cars[carID]->setStatus(1);
+        updateInfo(carID);
+    }
+
+    void updateInfo(int carID){
+        getmaxyx(stdscr, row, col);
+        mvwprintw(this->infoWindow, (carID + 2) + 5, col/15 + 10, cars[carID]->getStatus());
+        wrefresh(this->infoWindow);
     }
 
     void checkInput(){
