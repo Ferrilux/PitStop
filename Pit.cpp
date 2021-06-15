@@ -14,6 +14,7 @@ class Pit
 {
 private:
     std::vector<Car*> cars;
+	std::vector<std::mutex> teams;
     std::atomic<bool> isOver;
     std::atomic<bool> crash;
     std::atomic<bool> print;
@@ -24,11 +25,13 @@ private:
     WINDOW *infoWindow;
 
 public:
-    Pit(){
+    Pit() : teams(10){
         for(int i = 0; i < 20; i++){
             Car* newCar = new Car(i);
             cars.push_back(newCar);
         }
+        std::vector<std::mutex> list(10);
+        teams.swap(list);
         this->print = true;
     }
 
@@ -79,11 +82,16 @@ public:
 
     void changeTires(int carID){
 
+        // TODO - wait for pit to free up
+        //std::unique_lock<std::mutex> lck(*teams[carID%10]);
+        while(!teams[carID%10].try_lock());
+
+        // TODO - each tire to be changed separetely
         std::unique_lock<std::mutex> lockFrontLeft(*cars[carID]->wheels[0], std::defer_lock);
         std::unique_lock<std::mutex> lockFrontRight(*cars[carID]->wheels[1], std::defer_lock);
         std::unique_lock<std::mutex> lockRearLeft(*cars[carID]->wheels[2], std::defer_lock);
         std::unique_lock<std::mutex> lockRearRight(*cars[carID]->wheels[3], std::defer_lock);
-        
+
         std::try_lock(lockFrontLeft, lockFrontRight, lockRearLeft, lockRearRight);
         
         updatePit(carID, 0, 3);
@@ -99,6 +107,7 @@ public:
         cars[carID]->setStatus(onTrack);
         updateInfo(carID);
 
+        teams[carID%10].unlock();
         freePit(carID);
     }
 
@@ -184,7 +193,7 @@ public:
             }
         }
 
-        if(carID < 10){
+        if(carID % 10 < 5){
             switch(tire){
                 case 0:
                     mvwprintw(this->pitWindow, (carID%5)*9 + 4, col/8 - 1, "O");
