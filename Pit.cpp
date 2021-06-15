@@ -3,6 +3,7 @@
 #include "locale.h"
 #include <iostream>
 #include <vector>
+#include <algorithm>
 #include <mutex>
 #include <thread>
 #include <random>
@@ -31,6 +32,7 @@ public:
 
         initscr();
         noecho(); // no echo while we getch
+        curs_set(0); // no cursor
         setlocale(LC_ALL, ""); // enable utf-8 print
         getmaxyx(stdscr, row, col);
         pitWindow = printPit(pitWindow, row, col);
@@ -52,15 +54,16 @@ public:
     void race (int id)
     {
         while(!this->isOver){
-            cars[id]->setStatus(1);
-            updateInfo(id);
-            drive();
-            cars[id]->setStatus(3);
-            updateInfo(id);
-            changeTires(id);
             if(this->crash){
                 changeTires(id);
             }
+            cars[id]->setStatus(onTrack);
+            updateInfo(id);
+            drive();
+            cars[id]->setStatus(waiting);
+            updateInfo(id);
+            changeTires(id);
+            
         }
     };
 
@@ -71,22 +74,26 @@ public:
 
     void changeTires(int carID){
 
-        //std::unique_lock<std::mutex> lockFrontLeft(cars[carID]->wheels[0], std::defer_lock);
-        updatePit(carID, 0, 2);
-        //std::unique_lock<std::mutex> lockFrontRight(cars[carID]->wheels[1], std::defer_lock);
-        updatePit(carID, 1, 2);
-        //std::unique_lock<std::mutex> lockRearLeft(cars[carID]->wheels[2], std::defer_lock);
-        updatePit(carID, 2, 2);
-        //std::unique_lock<std::mutex> lockRearRight(cars[carID]->wheels[3], std::defer_lock);
-        updatePit(carID, 3, 2);
-        //std::lock(lockFrontLeft, lockFrontRight);
-        //, lockRearLeft, lockRearRight
-        auto changeTime = randomTime(5);
+        std::unique_lock<std::mutex> lockFrontLeft(*cars[carID]->wheels[0], std::defer_lock);
+        std::unique_lock<std::mutex> lockFrontRight(*cars[carID]->wheels[1], std::defer_lock);
+        std::unique_lock<std::mutex> lockRearLeft(*cars[carID]->wheels[2], std::defer_lock);
+        std::unique_lock<std::mutex> lockRearRight(*cars[carID]->wheels[3], std::defer_lock);
         
-        cars[carID]->setStatus(0);
+        std::try_lock(lockFrontLeft, lockFrontRight, lockRearLeft, lockRearRight);
+        
+        updatePit(carID, 0, 3);
+        updatePit(carID, 1, 3);
+        updatePit(carID, 2, 3);
+        updatePit(carID, 3, 3);
+        cars[carID]->setStatus(inPit);
+        updateInfo(carID);
+        
+        auto changeTime = randomTime(5);
+        sleepFor(changeTime);
+
+        cars[carID]->setStatus(onTrack);
         updateInfo(carID);
 
-        sleepFor(changeTime);
         freePit(carID);
     }
 
@@ -220,9 +227,11 @@ public:
         else{
             mvwprintw(this->pitWindow, (carID%5)*9 + 7, 2 * col/6 - 1, " | Free |");
         }
+        updatePit(carID, 0, 1);
+        updatePit(carID, 1, 1);
+        updatePit(carID, 2, 1);
+        updatePit(carID, 3, 1);
         wrefresh(this->pitWindow);
-        cars[carID]->setStatus(1);
-        updateInfo(carID);
     }
 
     void updateInfo(int carID){
@@ -260,8 +269,6 @@ public:
         std::this_thread::sleep_for(duration);
     }
 };
-
-
 
 int main(void)
 {

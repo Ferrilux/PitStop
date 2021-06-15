@@ -2,24 +2,17 @@
 #include <string>
 #include <mutex>
 #include <thread>
-
-    enum status
-    {
-        inPit,
-        onTrack,
-        waiting,
-        dnf
-    };
+#include "Status.cpp"
 
 class Car
 {
 private:
-	std::vector<std::unique_ptr<std::mutex>> wheels;
     int id;
-    status currentStatus;
+    Status currentStatus;
 
 public:
     std::thread thread;
+	std::vector<std::unique_ptr<std::mutex>> wheels;
 
     Car(int id): wheels(4){
         this->id = id;
@@ -30,34 +23,24 @@ public:
         }
     }
 
-    void setStatus(int i){
-        switch(i){
-            case 0:
-                this->currentStatus = inPit;
-            case 1:
-                this->currentStatus = onTrack;
-            case 2:
-                this->currentStatus = waiting;
-            case 3:
-                this->currentStatus = dnf;
-            default:
-                this->currentStatus = onTrack;
-        }
+    void setStatus(Status s){
+        this->currentStatus = s;
     }
 
     const char* getStatus(){
 
         switch(this->currentStatus){
             case inPit:
-                return "In Pit";
+                return "In Pit        ";
             case onTrack:
-                return "On track";
+                return "On track      ";
             case waiting:
                 return "Waiting in Pit";
             case dnf:
-                return "DNF";
+                return "DNF           ";
             default:
-                return "Undefined";
+                return "Undefined     ";
         }
     }
+
 };
