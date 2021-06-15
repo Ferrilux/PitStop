@@ -8,6 +8,7 @@
 #include <thread>
 #include <random>
 #include <atomic>
+#include <condition_variable>
 
 class Pit
 {
@@ -15,6 +16,9 @@ private:
     std::vector<Car*> cars;
     std::atomic<bool> isOver;
     std::atomic<bool> crash;
+    std::atomic<bool> print;
+    std::mutex printer;
+    std::condition_variable cv;
     int row, col;
     WINDOW *pitWindow;
     WINDOW *infoWindow;
@@ -25,6 +29,7 @@ public:
             Car* newCar = new Car(i);
             cars.push_back(newCar);
         }
+        this->print = true;
     }
 
     void init()
@@ -155,6 +160,12 @@ public:
     }
 
     void updatePit(int carID, int tire, int color){
+        
+        std::unique_lock<std::mutex> lock(printer);
+
+        while(!print) cv.wait(lock);
+        
+        this->print = false;
         getmaxyx(stdscr, row, col);
         
         if (has_colors())
@@ -218,6 +229,9 @@ public:
             mvwprintw(this->pitWindow, (carID%5)*9 + 7, 2 * col/6 - 1, " | Car %d|", carID + 1);
         }
         wrefresh(this->pitWindow);
+        
+        this->print = true;
+        cv.notify_all();
     }
 
     void freePit(int carID){
@@ -235,9 +249,18 @@ public:
     }
 
     void updateInfo(int carID){
+
+        std::unique_lock<std::mutex> lock(printer);
+
+        while(!print) cv.wait(lock);
+        this->print = false;
+
         getmaxyx(stdscr, row, col);
         mvwprintw(this->infoWindow, (carID + 2) + 5, col/15 + 10, cars[carID]->getStatus());
         wrefresh(this->infoWindow);
+
+        this->print = true;
+        cv.notify_all();
     }
 
     void checkInput(){
