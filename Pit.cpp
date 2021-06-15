@@ -37,7 +37,6 @@ public:
 
     void init()
     {
-
         initscr();
         noecho(); // no echo while we getch
         curs_set(0); // no cursor
@@ -57,6 +56,7 @@ public:
             cars[i]->thread = std::thread(&Pit::race, this, i);
         }
         observe.join();
+        
     }
 
     void race (int id)
@@ -82,8 +82,6 @@ public:
 
     void changeTires(int carID){
 
-        // TODO - wait for pit to free up
-        //std::unique_lock<std::mutex> lck(*teams[carID%10]);
         while(!teams[carID%10].try_lock());
 
         // TODO - each tire to be changed separetely
